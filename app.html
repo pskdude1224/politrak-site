@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PoliTrak — Key Biscayne</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="pt.css">
+<style>
+  /* App-shell layout that pt.css doesn't already cover: the three-column
+     grid, the search dropdown, rail item rows, and profile-tab cards. */
+  .app-wrap { max-width: 1400px; }
+  .topnav .right { display: flex; align-items: center; gap: 18px; }
+
+  .app-grid { display: grid; grid-template-columns: 260px 1fr 300px; gap: 20px; align-items: start; margin-top: 8px; }
+  @media (max-width: 1000px) {
+    .app-grid { display: flex; flex-direction: column; }
+    .rail { width: 100%; max-height: none; overflow-y: visible; }
+    /* Rails become horizontally scrolling rows of chips/cards below 1000px;
+       above it .rail-list is a plain wrapper div and has no effect. */
+    .rail-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+    .rail-list .rail-group-label { flex: none; align-self: center; margin: 0; }
+    .rail-list .rail-item { flex: none; white-space: nowrap; border: 1px solid var(--line); }
+    .rail-list .right-section { flex: none; width: 240px; margin-bottom: 0;
+      background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  }
+
+  /* ---- search ---- */
+  .search-wrap { position: relative; width: 280px; }
+  #q { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--ink);
+    padding: 8px 12px; border-radius: 10px; font-size: 13px; font-family: inherit; }
+  #q:focus { outline: none; border-color: var(--blue); }
+  .search-drop { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 18px 40px rgba(0,0,0,.5);
+    max-height: 380px; overflow-y: auto; z-index: 50; }
+  .search-drop .grp-label { padding: 8px 12px 4px; font-size: 11px; color: var(--mut2);
+    text-transform: uppercase; letter-spacing: .5px; }
+  .search-item { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 12px; cursor: pointer; font-size: 13px; }
+  .search-item:hover { background: rgba(255,255,255,.05); }
+  .search-item .kind { color: var(--mut2); font-size: 11px; }
+
+  /* ---- left rail ---- */
+  .rail-group-label { font-size: 11px; color: var(--mut2); text-transform: uppercase;
+    letter-spacing: .5px; margin: 16px 0 6px; }
+  .rail-group-label:first-of-type { margin-top: 0; }
+  .rail-item { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--ink); }
+  .rail-item:hover { background: rgba(255,255,255,.05); }
+  .rail-item.on { background: linear-gradient(100deg, rgba(70,166,255,.16), rgba(45,212,191,.16));
+    border: 1px solid rgba(45,212,191,.45); }
+  .rail-item.everything { font-weight: 700; margin-bottom: 4px; }
+  .rail-item .ri-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-item .ri-meta { display: flex; align-items: center; gap: 6px; flex: none; }
+  .rail-item .status { font-size: 11px; color: var(--mut2); }
+
+  /* ---- shared label/value rows (right rail, profile cards) ---- */
+  .row { font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+  .row b { color: var(--mut); font-weight: 600; margin-right: 6px; }
+
+  /* ---- pill variants pt.css doesn't define ---- */
+  .pill.type { background: transparent; border-color: var(--line); color: var(--mut); }
+  .badge-muted { display: inline-block; margin-left: 4px; font-size: 10px; color: var(--mut2);
+    text-transform: uppercase; letter-spacing: .4px; }
+
+  /* ---- right rail ---- */
+  .right-section { margin-bottom: 22px; }
+  .right-section h4 { font-size: 11px; color: var(--mut); text-transform: uppercase;
+    letter-spacing: .6px; margin: 0 0 10px; }
+  .right-section .row { line-height: 1.4; }
+  .right-section .src { display: block; margin-top: 2px; }
+
+  /* ---- main / tabs ---- */
+  #main { min-width: 0; }
+  /* If something still cannot shrink, it scrolls inside the panel instead of bleeding under the rail. */
+  #panel { padding-top: 4px; min-width: 0; overflow-x: auto; }
+
+  /* ---- profile tab ---- */
+  .profile-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .profile-header h2 { margin: 0; font-size: 24px; letter-spacing: -.3px; }
+  .profile-meta { color: var(--mut); font-size: 13px; margin: 0 0 22px; }
+  .profile-meta span + span::before { content: ' · '; color: var(--mut2); }
+  .profile-section { margin-bottom: 28px; }
+  .profile-section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--mut); margin: 0 0 12px; }
+  .tie-group { margin-bottom: 16px; }
+  .tie-group .tg-label { font-size: 12px; color: var(--teal); font-weight: 700; margin: 0 0 8px;
+    text-transform: capitalize; }
+  .tie-row { padding: 8px 10px; margin-bottom: 6px; font-size: 13px; }
+  .tie-row .tr-main a { color: var(--ink); font-weight: 600; }
+  .tie-row .tr-detail { color: var(--mut); }
+  .subject-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .subject-card { cursor: pointer; }
+  .subject-card h4 { margin: 0 0 6px; font-size: 15px; }
+  .subject-card .sc-row { font-size: 12px; color: var(--mut); margin-bottom: 3px; }
+  .subject-card .sc-open { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--blue); }
+  .disclosure-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .disclosure-grid .tile { padding: 12px 14px; }
+  .disclosure-grid .tile h5 { margin: 0 0 8px; font-size: 12px; color: var(--mut); text-transform: uppercase; letter-spacing: .4px; }
+  .disclosure-grid .tile .di-row { font-size: 13px; margin-bottom: 6px; }
+  .rel-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .rel-groups { grid-template-columns: 1fr; } }
+  /* Phone width: the brand and the 280px search box cannot share one row. */\n  @media (max-width: 640px) {\n    .topnav { flex-wrap: wrap; gap: 10px; }\n    .topnav .right { width: 100%; }\n    .search-wrap { width: 100%; }\n  }\n</style>
+</head>
+<body>
+<div class="bg"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="grid"></div></div>
+
+<div class="wrap app-wrap">
+  <nav class="topnav">
+    <div class="brand"><span class="dot"></span>PoliTrak <small>Key Biscayne</small></div>
+    <div class="right">
+      <a class="navlink" href="index.html">Map</a>
+      <div class="search-wrap">
+        <input id="q" type="text" placeholder="Search people, entities, issues…" autocomplete="off">
+        <div id="qdrop" class="search-drop" hidden></div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-grid">
+    <aside class="rail" id="left"></aside>
+    <main id="main">
+      <div class="tabs" id="tabs"></div>
+      <div id="panel"></div>
+    </main>
+    <aside class="rail" id="right"></aside>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

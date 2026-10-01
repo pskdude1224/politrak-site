@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PoliTrak — Key Biscayne</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous">
+<link rel="stylesheet" href="pt.css">
+<style>
+  /* Layout pt.css doesn't already cover: the hero grid, the map card, the
+     "what's new" feed grid, the legend strip and the footer. */
+  .lede { font-size: 17px; line-height: 1.55; color: #c4d2e2; margin: 20px 0 0; max-width: 520px; }
+  .lede b { color: #fff; font-weight: 600; }
+  .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 40px; align-items: start; padding: 34px 0 8px; }
+  @media (max-width: 880px) { .hero { grid-template-columns: 1fr; } }
+  .card-heading { font-size: 12px; color: var(--mut); text-transform: uppercase; letter-spacing: .6px; margin: 0 0 14px; }
+  .tiles-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .cta-row { display: flex; align-items: center; gap: 16px; margin-top: 26px; flex-wrap: wrap; }
+  .cta-sub { color: var(--mut); font-size: 13px; }
+  .chips-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+
+  section#mapview, section#new, section#method { margin-top: 66px; }
+  section h2 { font-size: 25px; margin: 0 0 8px; letter-spacing: -.3px; }
+  .mapview-sub { color: var(--mut); margin: 0 0 20px; max-width: 660px; }
+  .mapview-card { padding: 16px; }
+  .layers-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip.disabled { opacity: .45; cursor: not-allowed; }
+  .chip.disabled:hover { border-color: var(--line); color: var(--mut); }
+  #map { height: 520px; border-radius: 16px; overflow: hidden; }
+  #legend { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 14px; font-size: 12px; color: var(--mut); min-height: 14px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+  .legend-sq { width: 9px; height: 9px; display: inline-block; flex: none; }
+  .legend-diamond { transform: rotate(45deg); width: 7px; height: 7px; }
+  .legend-hex { width: 11px; height: 11px; display: inline-block; flex: none; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); }
+  .legend-line { display: inline-block; width: 18px; height: 0; border-top: 2px solid; flex: none; }
+  .legend-note { color: var(--mut2); }
+
+  .new-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .new-card b { font-size: 22px; }
+  .new-labels { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+  #method p { max-width: 720px; color: var(--mut); }
+
+  .footer { margin-top: 70px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--mut2); font-size: 12px; }
+
+  .popup-person, .popup-tie, .popup-issue, .popup-money { font-size: 13px; line-height: 1.5; }
+  .popup-person strong, .popup-tie strong, .popup-issue strong, .popup-money strong { display: block; margin-bottom: 4px; }
+  .popup-person div, .popup-tie div, .popup-issue div, .popup-money div { margin: 2px 0; }
+  .popup-person .pill { margin: 2px 0; }
+  button.show-ties { margin-top: 8px; border: 1px solid var(--line); }
+  .empty-inline { color: var(--mut2); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="bg"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="grid"></div></div>
+
+<div class="wrap">
+  <nav class="topnav">
+    <div class="brand"><span class="dot"></span>PoliTrak <small>Key Biscayne</small></div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <a class="navlink" href="#method">Method</a>
+      <a class="nav-cta" href="app.html">Open the app →</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-left">
+      <div class="eyebrow"><span class="pulse"></span><span id="eyebrow-text">Public records only</span></div>
+      <h1>Who is tied to what on Key Biscayne.</h1>
+      <p class="lede">Every candidate and official, their companies, properties, donors, lobbyists and votes, drawn from sworn filings and state registries. Every line links to its source.</p>
+      <div class="cta-row">
+        <a class="cta" href="app.html#/web">Explore the web →</a>
+        <span class="cta-sub">Start with the map below, or open any person.</span>
+      </div>
+      <div id="chips" class="chips-row"></div>
+    </div>
+    <div class="hero-right">
+      <div class="card">
+        <div class="card-heading">At a glance</div>
+        <div id="tiles" class="tiles-grid"></div>
+      </div>
+    </div>
+  </header>
+
+  <section id="mapview">
+    <h2>The island, by candidate</h2>
+    <p class="mapview-sub">Pins are sworn residences from qualifying oaths. Select a candidate to see their properties, companies and registered agents.</p>
+    <div class="card mapview-card">
+      <div id="layers" class="layers-row"></div>
+      <div id="map"></div>
+      <div id="legend"></div>
+    </div>
+  </section>
+
+  <section id="new">
+    <h2>What's new</h2>
+    <div id="new-grid" class="new-grid"></div>
+  </section>
+
+  <section id="method">
+    <h2>Method</h2>
+    <p>PoliTrak is built entirely from public records: sworn qualifying oaths, state ethics disclosures, Sunbiz corporate filings, county property and voter rolls, campaign finance reports, lobbyist registrations, and Village council minutes and agendas. Every fact carries a link back to the filing or page it came from — nothing here is sourced from rumor, anonymous tips, or private data.</p>
+    <p>Some people appear with a limited profile — name, occupation and city only. That's how private individuals show up when a public record (a contribution, a permit, a court filing) names them but they aren't a candidate, an official, or someone acting in an official capacity. Their home address and other personal details are never published.</p>
+    <p>Spot an error, a missing source, or something that should be corrected? Open an issue on the project's repository describing what's wrong and, where you can, a citation for the correct fact.</p>
+  </section>
+
+  <footer class="footer" id="footer-text"></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous"></script>
+<script src="summary.js"></script>
+<script src="data.js"></script>
+<script src="geo.js" onerror="this.remove()"></script>
+<script type="module">
+import { indexData } from './lib/index.mjs';
+import { money, dateText, daysUntil, escapeHtml } from './lib/format.mjs';
+import createIslandMap from './map.mjs';
+
+const PT = window.PT;
+const S = window.PT_SUMMARY;
+const ix = indexData(PT);
+const election = (PT.tables.elections && PT.tables.elections[0]) || {};
+
+// ---- eyebrow --------------------------------------------------------------
+document.getElementById('eyebrow-text').textContent = `Public records only · built ${S.builtDate}`;
+
+// ---- countdown chips --------------------------------------------------------
+function sortKeyOf(date) {
+  return /^\d{4}-\d{2}-\d{2}/.test(date || '') ? date : `${date}-01`;
+}
+
+function buildChipItems() {
+  const items = [...(S.nextDates || [])];
+  const knownDates = new Set(items.map(it => it.date));
+  // Only add these as their own chips when the timeline doesn't already
+  // carry an event on that same date — otherwise they'd just duplicate it.
+  if (election.registration_deadline && !knownDates.has(election.registration_deadline)) {
+    items.push({ date: election.registration_deadline, event: 'Registration deadline' });
+  }
+  if (election.date && !knownDates.has(election.date)) {
+    items.push({ date: election.date, event: 'Election Day' });
+  }
+
+  const withDays = items
+    .map(it => ({ ...it, days: daysUntil(it.date, S.builtDate), sortKey: sortKeyOf(it.date) }))
+    .filter(it => it.days === null || it.days >= 0)
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+  const seen = new Set();
+  const deduped = [];
+  for (const it of withDays) {
+    if (seen.has(it.event)) continue;
+    seen.add(it.event);
+    deduped.push(it);
+    if (deduped.length >= 4) break;
+  }
+  return deduped;
+}
+
+const chipsEl = document.getElementById('chips');
+chipsEl.innerHTML = buildChipItems().map(it => {
+  const label = it.days === null ? dateText(it.date) : `${it.days} days`;
+  return `<span class="chip">${escapeHtml(label)} · ${escapeHtml(it.event)}</span>`;
+}).join('');
+
+// ---- at-a-glance tiles ------------------------------------------------------
+const daysToElection = daysUntil(election.date, S.builtDate);
+const tiles = [
+  [election.seats_up || '—', 'Seats up'],
+  [String((PT.tables.candidacies || []).length), 'Candidates'],
+  [String(S.totals.documentedTies), 'Documented ties'],
+  [money(S.totals.raised), 'Raised'],
+  [daysToElection === null ? '—' : String(daysToElection), 'Days to election'],
+];
+document.getElementById('tiles').innerHTML = tiles.map(([v, k]) =>
+  `<div class="tile"><b>${escapeHtml(v)}</b><span>${escapeHtml(k)}</span></div>`
+).join('');
+
+// ---- the island map ---------------------------------------------------------
+const mapEl = document.getElementById('map');
+let islandMap;
+const onSelect = personId => {
+  islandMap.showTies(personId);
+  setLayerActive('ties', true);
+};
+islandMap = createIslandMap(mapEl, PT, ix, { onSelect });
+
+// ---- layer chips + legend ----------------------------------------------------
+const LAYER_DEFS = [
+  { name: 'candidates', label: 'Candidates', defaultOn: true },
+  { name: 'ties', label: 'Ties', defaultOn: false },
+  { name: 'issues', label: 'Issues', defaultOn: false },
+  { name: 'money', label: 'Money', defaultOn: false },
+  { name: 'districts', label: 'Districts', defaultOn: false, disabled: !window.PT_GEO, disabledTitle: 'no boundaries fetched yet' },
+];
+const chipState = {};
+const layerChipEls = {};
+const layersEl = document.getElementById('layers');
+
+for (const def of LAYER_DEFS) {
+  const on = !!def.defaultOn && !def.disabled;
+  chipState[def.name] = on;
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'chip' + (on ? ' on' : '') + (def.disabled ? ' disabled' : '');
+  chip.textContent = def.label;
+  if (def.disabled) {
+    chip.disabled = true;
+    chip.title = def.disabledTitle;
+  }
+  chip.addEventListener('click', () => setLayerActive(def.name, !chipState[def.name]));
+  layersEl.appendChild(chip);
+  layerChipEls[def.name] = chip;
+}
+
+function setLayerActive(name, on) {
+  if (!(name in chipState) || layerChipEls[name].disabled) return;
+  chipState[name] = on;
+  layerChipEls[name].classList.toggle('on', on);
+  islandMap.setLayer(name, on);
+  renderLegend();
+}
+
+// Colours mirrored from pt.css for the legend swatches (which live outside
+// the map's own SVG/canvas context, so plain CSS variables work fine here).
+const LC = {
+  teal: 'var(--teal)', blue: 'var(--blue)', green: 'var(--green)', red: 'var(--red)',
+  amber: 'var(--amber)', violet: 'var(--violet)', mut2: 'var(--mut2)',
+};
+
+function swatch(shape, color, label) {
+  let mark = '';
+  if (shape === 'dot') mark = `<span class="legend-dot" style="background:${color}"></span>`;
+  else if (shape === 'square') mark = `<span class="legend-sq" style="background:${color}"></span>`;
+  else if (shape === 'diamond') mark = `<span class="legend-sq legend-diamond" style="background:${color}"></span>`;
+  else if (shape === 'hex') mark = `<span class="legend-hex" style="background:${color}"></span>`;
+  return `<span class="legend-item">${mark}${escapeHtml(label)}</span>`;
+}
+function lineSwatch(color, label) {
+  return `<span class="legend-item"><span class="legend-line" style="border-color:${color}"></span>${escapeHtml(label)}</span>`;
+}
+// Same colour per district key as map.mjs draws it.
+const DISTRICT_STYLE = {
+  county_commission: [LC.blue, 'County Commission'],
+  fl_house: [LC.teal, 'FL House'],
+  fl_senate: [LC.green, 'FL Senate'],
+  congress: [LC.violet, 'Congress'],
+};
+
+const unpinnedNames = ix.subjects.filter(p => !ix.residenceOf(p.person_id)).map(p => p.full_name);
+
+function renderLegend() {
+  const parts = [];
+  if (chipState.candidates) {
+    parts.push(swatch('dot', LC.teal, 'Candidate'));
+    parts.push(swatch('dot', LC.blue, 'Official'));
+    parts.push(swatch('dot', LC.green, 'Staff'));
+    if (unpinnedNames.length) {
+      parts.push(`<span class="legend-item legend-note">Not pinned: ${escapeHtml(unpinnedNames.join(', '))} — no sworn address on file</span>`);
+    }
+  }
+  if (chipState.ties) {
+    parts.push(swatch('square', LC.violet, 'Company'));
+    parts.push(swatch('diamond', LC.green, 'Property'));
+    parts.push(swatch('square', LC.red, 'Issue entity'));
+    parts.push(`<span class="legend-item legend-note">— documented · - - reported · ·· inferred</span>`);
+  }
+  if (chipState.issues) parts.push(swatch('hex', LC.red, 'Issue'));
+  if (chipState.money) parts.push(swatch('dot', LC.amber, 'Contribution (jittered)'));
+  if (chipState.districts) {
+    // The legend follows the layers that actually shipped in geo.js, not a hand-kept list:
+    // fetch_districts.mjs writes whatever the county and TIGERweb answered with, and a legend
+    // naming a boundary the map cannot draw (County Commission, when geo.js has no such key)
+    // is a line the reader will look for and never find.
+    for (const key of Object.keys(window.PT_GEO || {})) {
+      const [color, label] = DISTRICT_STYLE[key] || [LC.mut2, key.replace(/_/g, ' ')];
+      parts.push(lineSwatch(color, label));
+    }
+  }
+  document.getElementById('legend').innerHTML = parts.join('') || '<span class="legend-note">No layers on.</span>';
+}
+renderLegend();
+
+// ---- what's new ---------------------------------------------------------------
+function rowLabel(table, row) {
+  if (table === 'people' && row.full_name) return row.full_name;
+  if (table === 'entities' && row.name) return row.name;
+  const firstKey = Object.keys(row)[0];
+  return row[firstKey] != null ? String(row[firstKey]) : '';
+}
+
+const changelog = (PT.derived && PT.derived.changelog) || {};
+const newCards = Object.keys(changelog).map(table => {
+  const rows = changelog[table] || [];
+  if (!rows.length) return '';
+  const labels = rows.slice(0, 3).map(r => rowLabel(table, r)).filter(Boolean);
+  return `
+    <div class="tile new-card">
+      <b>${escapeHtml(rows.length)}</b>
+      <span>rows added to ${escapeHtml(table)}</span>
+      <div class="new-labels">${labels.map(l => `<span class="pill limited">${escapeHtml(l)}</span>`).join('')}</div>
+    </div>`;
+}).filter(Boolean);
+document.getElementById('new-grid').innerHTML = newCards.join('') || '<div class="empty">Nothing new yet.</div>';
+
+// ---- footer ---------------------------------------------------------------
+document.getElementById('footer-text').textContent =
+  `Independent and non-partisan. Not affiliated with the Village of Key Biscayne. Data as of ${S.builtDate}.`;
+</script>
+</body>
+</html>
