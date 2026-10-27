@@ -5,14 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PoliTrak — Key Biscayne</title>
 <link rel="icon" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="pt.css">
 <style>
   /* App-shell layout that pt.css doesn't already cover: the three-column
      grid, the search dropdown, rail item rows, and profile-tab cards. */
-  .app-wrap { max-width: 1400px; }
+  /* The web is the point of this page, so the shell is as wide as a 16:9 laptop
+     allows and the rails are trimmed to what their content actually needs. */
+  .app-wrap { max-width: 1760px; padding-bottom: 40px; }
   .topnav .right { display: flex; align-items: center; gap: 18px; }
 
-  .app-grid { display: grid; grid-template-columns: 260px 1fr 300px; gap: 20px; align-items: start; margin-top: 8px; }
+  .app-grid { display: grid; grid-template-columns: 228px minmax(0, 1fr) 286px; gap: 20px; align-items: start; margin-top: 6px; }
+  .app-grid > .rail { position: sticky; top: 14px; }
+  /* One rail at a time: below 1320px the right rail (sources, next dates) folds
+     under the panel rather than squeezing the web. */
+  @media (max-width: 1320px) {
+    .app-grid { grid-template-columns: 220px minmax(0, 1fr); }
+    .app-grid > .rail:last-child { grid-column: 1 / -1; position: static; max-height: none; }
+    .app-grid > .rail:last-child .rail-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  }
   @media (max-width: 1000px) {
     .app-grid { display: flex; flex-direction: column; }
     .rail { width: 100%; max-height: none; overflow-y: visible; }
@@ -100,14 +113,25 @@
   .disclosure-grid .tile .di-row { font-size: 13px; margin-bottom: 6px; }
   .rel-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 720px) { .rel-groups { grid-template-columns: 1fr; } }
-  /* Phone width: the brand and the 280px search box cannot share one row. */\n  @media (max-width: 640px) {\n    .topnav { flex-wrap: wrap; gap: 10px; }\n    .topnav .right { width: 100%; }\n    .search-wrap { width: 100%; }\n  }\n</style>
+  /* Phone width: the brand and the 280px search box cannot share one row. */
+  @media (max-width: 640px) {
+    .topnav { flex-wrap: wrap; gap: 10px; }
+    .topnav .right { width: 100%; }
+    .search-wrap { width: 100%; }
+    .brand small { display: none; }
+  }
+</style>
 </head>
 <body>
 <div class="bg"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="grid"></div></div>
 
 <div class="wrap app-wrap">
   <nav class="topnav">
-    <div class="brand"><span class="dot"></span>PoliTrak <small>Key Biscayne</small></div>
+    <a class="brand" href="index.html" aria-label="PoliTrak home">
+      <img src="mark.svg" alt="" width="30" height="30">
+      <span class="wordmark">POLITRAK</span>
+      <small>Key Biscayne</small>
+    </a>
     <div class="right">
       <a class="navlink" href="index.html">Map</a>
       <div class="search-wrap">

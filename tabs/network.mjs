@@ -1032,6 +1032,12 @@ const networkTab = {
     // Bumped by every reader-driven zoom so a fit that is still gliding can tell
     // whether it was overtaken by a gesture.
     let userZoomSeq = 0;
+    // Bumped by every fit, so a landing timer can tell whether a newer fit has superseded it.
+    let fitSeq = 0;
+    // The simulation has moved the nodes at least once (see fit), and how many fits have
+    // actually framed something since this render began.
+    let hasTicked = false;
+    let fitsApplied = 0;
     const zoom = d3.zoom().scaleExtent([0.25, 4]).on('zoom', ev => {
       if (ev.sourceEvent) { userZoomed = true; userZoomSeq++; }
       root.attr('transform', ev.transform);
@@ -1214,6 +1220,16 @@ const networkTab = {
     let tickCount = 0;
     function ticked() {
       if (!nodeSel) return;
+      if (!hasTicked) {
+        hasTicked = true;
+        // Both timed frames can land before the first tick where animation frames are throttled
+        // (a background pane, a headless capture). If neither framed anything, frame once the
+        // layout actually starts moving.
+        const firstMove = setTimeout(() => {
+          if (stage.isConnected && !fitsApplied && !userZoomed) frame(600);
+        }, 700);
+        timers.push(firstMove);
+      }
       placeLines(linkSel);
       placeLines(hitSel);
       nodeSel.attr('transform', nodeTransform);
@@ -1414,6 +1430,10 @@ const networkTab = {
         if (n.y + r > maxY) maxY = n.y + r;
       }
       if (!Number.isFinite(minX)) return;
+      // Before the first tick d3 has every node in a phyllotaxis spiral a couple of hundred
+      // pixels across, whatever the web really measures; framing THAT magnifies the spiral to the
+      // 1.6 ceiling and leaves the real layout hanging off the stage.
+      if (!hasTicked) return;
       // 44 px of air all round, plus room for the floating toolbar above and the
       // legend/zoom pills below — both sit over the stage, not beside it.
       const pad = 44;
@@ -1430,15 +1450,19 @@ const networkTab = {
       const tx = width / 2 - k * (minX + maxX) / 2;
       const ty = (padT + height - padB) / 2 - k * (minY + maxY) / 2;
       const target = d3.zoomIdentity.translate(tx, ty).scale(k);
+      fitsApplied++;
       svg.transition().duration(duration).ease(d3.easeCubicOut)
         .call(zoom.transform, target);
       // Same bargain as the entrance wave: the glide is decoration on the frame
       // clock, and this timer on the task clock is what guarantees the web
       // actually ends up framed. Skipped if the reader grabbed the zoom while it
       // was in flight — their gesture wins.
+      // A later fit always wins: an early frame's landing used to fire after the settled one
+      // and put the half-spread layout back on screen.
       const seq = userZoomSeq;
+      const mine = ++fitSeq;
       const land = setTimeout(() => {
-        if (!stage.isConnected || userZoomSeq !== seq) return;
+        if (!stage.isConnected || userZoomSeq !== seq || fitSeq !== mine) return;
         svg.interrupt();
         zoom.transform(svg, target);
       }, duration + 80);

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..700&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; position: relative;
+    background: #060a11; color: #eaf2fb; font-family: 'Public Sans', sans-serif; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(90px); }
+  .a { width: 620px; height: 620px; top: -220px; left: -120px; background: radial-gradient(circle, #1d6fd0, transparent 70%); opacity: .5; }
+  .b { width: 560px; height: 560px; top: -160px; right: -120px; background: radial-gradient(circle, #1bbf9c, transparent 70%); opacity: .34; }
+  .c { width: 700px; height: 500px; bottom: -300px; left: 34%; background: radial-gradient(circle, #2a4d8f, transparent 70%); opacity: .3; }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 30%, transparent 78%); }
+  main { position: relative; padding: 64px 72px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+  .lockup { display: flex; align-items: center; gap: 16px; }
+  .lockup img { width: 54px; height: 54px; filter: drop-shadow(0 0 20px rgba(45,212,191,.45)); }
+  .wordmark { font-family: 'Archivo', sans-serif; font-weight: 650; font-size: 34px; font-stretch: 112%; letter-spacing: .14em; }
+  .place { font-size: 20px; color: #9fb2c8; padding-left: 18px; border-left: 1px solid #263244; }
+  h1 { font-family: 'Archivo', sans-serif; font-weight: 650; font-stretch: 108%; font-size: 70px;
+    line-height: 1.02; letter-spacing: -.024em; max-width: 15ch;
+    background: linear-gradient(104deg, #ffffff 0%, #d5e8ff 46%, #b9f3df 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  p { margin-top: 20px; font-size: 24px; line-height: 1.45; color: #c4d2e2; max-width: 42ch; }
+  .foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
+  .nums { display: flex; gap: 44px; }
+  .nums b { display: block; font-family: 'Archivo', sans-serif; font-weight: 650; font-size: 34px; letter-spacing: -.02em; }
+  .nums span { font-size: 15px; color: #9fb2c8; }
+  .url { font-size: 17px; color: #2dd4bf; letter-spacing: .02em; }
+</style>
+</head>
+<body>
+<div class="glow a"></div><div class="glow b"></div><div class="glow c"></div><div class="grid"></div>
+<main>
+  <div class="lockup">
+    <img src="mark.svg" alt="">
+    <span class="wordmark">POLITRAK</span>
+    <span class="place">Key Biscayne</span>
+  </div>
+  <div>
+    <h1>Who is tied to what on Key Biscayne.</h1>
+    <p>Officials and candidates beside the companies, money and votes the public record puts next to them.</p>
+  </div>
+  <div class="foot">
+    <div class="nums">
+      <div><b>1,849</b><span>Documented ties</span></div>
+      <div><b>713</b><span>Council votes</span></div>
+      <div><b>1,155</b><span>Sources cited</span></div>
+    </div>
+    <div class="url">Every line links to its record</div>
+  </div>
+</main>
+</body>
+</html>
