@@ -56,6 +56,28 @@ const CSS = `
 .mf-row select { width: 290px; max-width: 100%; }
 .mf-row select optgroup { color: var(--mut); }
 .mf-row select option { color: var(--ink); }
+/* Phone width: five stacked fields filled the first screen of the tab, so they fold
+   behind one Filters button (with a count of what is set), and a ranked row puts its
+   name on a line of its own instead of a 300px column that pushed the amounts off. */
+.mf-toggle { display: none; }
+@media (max-width: 640px) {
+  .card.mf-card { padding: 0; }
+  .mf-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between;
+    padding: 12px 14px; background: none; border: 0; cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); }
+  .mf-toggle b { color: var(--teal); margin-left: 4px; }
+  .mf-caret { color: var(--teal); transition: transform .15s; }
+  .mf-card:not(.folded) .mf-caret { transform: rotate(180deg); }
+  .mf-card.folded .mf-row { display: none; }
+  .mf-row { padding: 0 14px 14px; gap: 10px; }
+  .mf-row label { flex: 1 1 130px; }
+  .mf-row label:first-child { flex-basis: 100%; }
+  .mf-row input, .mf-row select { width: 100%; }
+  .rk-row { flex-wrap: wrap; gap: 2px 10px; padding: 5px 6px; }
+  .rk-label { width: 100%; }
+  .rk-amt { width: auto; }
+  .rk-n { width: auto; }
+}
 .tiles-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
 .tiles-row .tile { min-width: 130px; }
 .tiles-row.six { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
@@ -63,6 +85,7 @@ const CSS = `
 .tiles-row.six .tile b { font-size: 21px; white-space: nowrap; }
 .tiles-row.six .tile span { display: block; font-size: 10px; letter-spacing: .3px; line-height: 1.35; }
 @media (max-width: 1100px) { .tiles-row.six { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .tiles-row.six { gap: 8px; } .tiles-row.six .tile { padding: 10px 9px; } .tiles-row.six .tile b { font-size: 17px; } }
 .muted-sub { display: block; color: var(--mut2); font-size: 11px; }
 .tm-wrap { position: relative; width: 100%; height: 280px; overflow: hidden; }
 .tm-tile { position: absolute; overflow: hidden; border: 1px solid rgba(7,11,17,.55);
@@ -719,7 +742,9 @@ export default {
           ${VIEWS.map(([id, label]) => `<button type="button" class="chip" data-view="${id}">${escapeHtml(label)}</button>`).join('')}
           <span class="mv-note" id="mv-note"></span>
         </div>
-        <div class="card mf-card">
+        <div class="card mf-card folded">
+          <button type="button" class="mf-toggle" aria-expanded="false">
+            <span>Filters <b id="mf-count"></b></span><span class="mf-caret">&#9662;</span></button>
           <div class="mf-row">
             <label>Recipient
               <select id="f-recipient"></select>
@@ -833,6 +858,9 @@ export default {
     }
 
     function refresh() {
+      const active = [filters.recipient, filters.contributor, filters.employer, filters.dateFrom, filters.dateTo]
+        .filter(Boolean).length;
+      $('#mf-count').textContent = active ? String(active) : '';
       contribRows = filterContributions(baseContribs, ix);
       expRows = filterExpenditures(baseExps, ix);
       totalsEl.innerHTML = totalsHtml(contribRows, expRows);
@@ -912,6 +940,10 @@ export default {
     employerInput.addEventListener('input', () => { filters.employer = employerInput.value; refresh(); });
     fromInput.addEventListener('change', () => { filters.dateFrom = fromInput.value; refresh(); });
     toInput.addEventListener('change', () => { filters.dateTo = toInput.value; refresh(); });
+    $('.mf-toggle').addEventListener('click', ev => {
+      const folded = $('.mf-card').classList.toggle('folded');
+      ev.currentTarget.setAttribute('aria-expanded', String(!folded));
+    });
     clearBtn.addEventListener('click', () => {
       filters.recipient = ''; filters.contributor = ''; filters.employer = ''; filters.dateFrom = ''; filters.dateTo = '';
       recipientSel.value = ''; contributorInput.value = ''; employerInput.value = ''; fromInput.value = ''; toInput.value = '';

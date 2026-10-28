@@ -100,6 +100,32 @@ export default function createIslandMap(el, PT, ix, { onSelect } = {}) {
   // until the visitor deliberately clicks into the map.
   map.once('click', () => map.scrollWheelZoom.enable());
 
+  // A finger is the same problem as the wheel: on a phone the map is most of the
+  // screen, and one-finger drag swallowed the page's scroll. Touch screens start
+  // with drag and pinch off; a button turns them on, and back off when done.
+  const touchy = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+    (navigator.maxTouchPoints > 0 && el.clientWidth < 780);
+  if (touchy) {
+    const Lock = L.Control.extend({
+      options: { position: 'topleft' },
+      onAdd() {
+        const btn = L.DomUtil.create('button', 'map-lock');
+        btn.type = 'button';
+        L.DomEvent.disableClickPropagation(btn);
+        const set = on => {
+          for (const h of [map.dragging, map.touchZoom]) on ? h.enable() : h.disable();
+          btn.classList.toggle('on', on);
+          btn.textContent = on ? '✓ Done moving' : '☝ Tap to move the map';
+        };
+        let moving = false;
+        set(moving);
+        L.DomEvent.on(btn, 'click', () => set(moving = !moving));
+        return btn;
+      },
+    });
+    new Lock().addTo(map);
+  }
+
   const layers = {
     candidates: L.layerGroup(),
     ties: L.layerGroup(),

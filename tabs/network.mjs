@@ -300,6 +300,48 @@ const CSS = `
   .net-head .net-lens { max-width: 150px; }
 }
 
+/* ---- phone width: the filters fold into one dropdown ----
+   Even wrapped, the chips ran off a phone's edge and the toolbar covered a third
+   of the web. Below 600px the toolbar is one line (find, Filters, Reset) and every
+   group opens under it as a stacked panel when Filters is tapped. */
+.net-filters-btn { display: none; }
+.net-filters-btn b { color: var(--teal); font-weight: 700; }
+@container (max-width: 599.98px) {
+  .net-head { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px;
+    top: 10px; left: 10px; right: 10px; padding: 7px 8px; }
+  .net-row { display: contents; }
+  .net-sep { display: none; }
+  .net-search { order: 0; flex: 1 1 0; min-width: 0; }
+  .net-head .net-search input { width: 100%; padding: 6px 12px; font-size: 13px; }
+  .net-head .chip { padding: 5px 11px; font-size: 12.5px; }
+  .net-head .net-filters-btn { display: inline-flex; order: 1; flex: none; }
+  .net-head [data-act="reset"] { order: 2; flex: none; }
+  .net-head .net-grp, .net-head [data-act="labels"] { order: 3; display: none; }
+  .net-head.open .net-grp { display: flex; flex: 1 1 100%; flex-wrap: wrap; position: relative;
+    padding: 4px 0 4px 74px; min-height: 34px; }
+  .net-head.open .net-grp .lbl { position: absolute; left: 2px; top: 13px; }
+  .net-head.open [data-act="labels"] { display: inline-flex; margin-left: 74px; }
+  .net-head.open .net-lens { flex: 1 1 0; min-width: 0; width: 100%; max-width: none; padding: 5px 10px; font-size: 12.5px; }
+  .net-head.open { max-height: calc(100% - 90px); overflow-y: auto; }
+  .net-counts { order: 4; }
+}
+
+/* ---- touch: the web stays still until it is asked to move ----
+   On a phone the stage is most of the screen, so a web that pans on every touch
+   swallowed the page's own scroll. Locked, a swipe scrolls the page and a tap still
+   opens a node; the pill unlocks pan and pinch. */
+/* Beside the zoom pill, where the legend (bottom left) and the expand pill (bottom
+   centre, or stacked above the zoom pill when narrow) never reach. */
+.net-lock { display: none; position: absolute; z-index: 22; right: 54px; bottom: 14px;
+  font-family: inherit; font-size: 12.5px; font-weight: 700;
+  color: var(--ink); padding: 8px 16px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  background: linear-gradient(180deg, rgba(28,38,54,.9), rgba(16,22,32,.9));
+  border: 1px solid rgba(45,212,191,.45); box-shadow: 0 12px 30px rgba(0,0,0,.45);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.net-stage.touchy .net-lock { display: block; }
+.net-stage.touchy:not(.locked) .net-lock { border-color: rgba(245,179,66,.6); color: var(--amber); }
+.net-stage.locked > svg { touch-action: pan-y; cursor: default; }
+
 /* ---- search ---- */
 .net-search { position: relative; }
 .net-search input { width: 148px; background: rgba(8,12,19,.6);
@@ -678,6 +720,7 @@ function headHtml(state, mode, focusEnabled, t, issues) {
         <input type="text" placeholder="Find in web…" autocomplete="off" aria-label="Find a node">
         <div class="net-drop" hidden></div>
       </div>
+      <button type="button" class="chip net-filters-btn" aria-expanded="false">Filters &#9662;</button>
       <div class="net-grp net-colour"><span class="lbl">Colour</span>
         ${chipHtml('colour:type', 'Type', colourMode === 'type', false)}
         ${chipHtml('colour:cluster', 'Cluster', colourMode === 'cluster', false)}
@@ -791,6 +834,7 @@ const networkTab = {
       '</div>' +
       '<button type="button" class="net-expand" aria-label="Expand the web to full screen">' +
       '⤢ Expand</button>' +
+      '<button type="button" class="net-lock"></button>' +
       '</div></div>';
 
     const wrap = container.querySelector('.net-wrap');
@@ -1046,6 +1090,21 @@ const networkTab = {
       scale = next;
       if (crossed) applyLabels();
     });
+    // A touch screen gets the web locked (see .net-lock): d3's own filter, plus
+    // `!locked`, so a locked swipe never reaches the zoom and scrolls the page.
+    const touchy = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+      (navigator.maxTouchPoints > 0 && width < 780);
+    let locked = touchy;
+    const lockBtn = stage.querySelector('.net-lock');
+    function setLocked(on) {
+      locked = touchy && on;
+      stage.classList.toggle('touchy', touchy);
+      stage.classList.toggle('locked', locked);
+      lockBtn.textContent = locked ? '☝ Tap to move' : '✓ Done moving';
+    }
+    setLocked(true);
+    lockBtn.addEventListener('click', () => setLocked(!locked));
+    zoom.filter(ev => !locked && (!ev.ctrlKey || ev.type === 'wheel') && !ev.button);
     svg.call(zoom).on('dblclick.zoom', null);
     svg.on('click', () => applyFocus(null, null));
 
@@ -1098,6 +1157,8 @@ const networkTab = {
     const expandBtn = stage.querySelector('.net-expand');
     function afterSizeChange() {
       expandBtn.textContent = isFull() ? '✕ Exit full screen' : '⤢ Expand';
+      // Full screen has no page behind it to scroll, so the web is free to move there.
+      setLocked(!isFull());
       // The tooltip is positioned against its offsetParent; in full screen that
       // has to be the stage, since `.net-wrap` is outside the fullscreen subtree
       // and would not be painted at all.
@@ -2168,8 +2229,33 @@ const networkTab = {
         lensSelect.classList.toggle('on', !!state.lens);
         computeLens();
         repaint();
+        syncFiltersBtn();
       });
     }
+
+    // ---- phone-width Filters dropdown -------------------------------------------------
+    // The button only shows below 600px (see the CSS); it counts what differs from
+    // a first visit so a folded panel still says that the web is filtered.
+    const filtersBtn = head.querySelector('.net-filters-btn');
+    function syncFiltersBtn() {
+      const n = (state.depth !== 1) + (state.kinds.size !== ALL_KINDS.length) +
+        !!state.lens + (colourMode !== 'type') + !!state.labelsAll;
+      filtersBtn.innerHTML = 'Filters' + (n ? ` <b>${n}</b>` : '') + ' &#9662;';
+      filtersBtn.classList.toggle('on', head.classList.contains('open'));
+      filtersBtn.setAttribute('aria-expanded', String(head.classList.contains('open')));
+    }
+    filtersBtn.addEventListener('click', () => {
+      head.classList.toggle('open');
+      syncFiltersBtn();
+    });
+    // Runs after the chip handler above, so it counts the state that handler left.
+    head.addEventListener('click', syncFiltersBtn);
+    svg.node().addEventListener('pointerdown', () => {
+      if (!head.classList.contains('open')) return;
+      head.classList.remove('open');
+      syncFiltersBtn();
+    });
+    syncFiltersBtn();
 
     // ---- search --------------------------------------------------------------------
     function matches(q) {

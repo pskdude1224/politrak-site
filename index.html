@@ -57,6 +57,10 @@
   .chip.disabled { opacity: .45; cursor: not-allowed; }
   .chip.disabled:hover { border-color: var(--line); color: var(--mut); }
   #map { height: 520px; border-radius: 16px; overflow: hidden; }
+  .map-lock { font: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer;
+    padding: 8px 14px; border-radius: 999px; background: rgba(16,22,32,.88);
+    border: 1px solid rgba(45,212,191,.45); box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+  .map-lock.on { color: var(--amber); border-color: rgba(245,179,66,.6); }
   #legend { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 14px; font-size: 12px; color: var(--mut); min-height: 14px; }
   .legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
@@ -64,7 +68,10 @@
   .legend-diamond { transform: rotate(45deg); width: 7px; height: 7px; }
   .legend-hex { width: 11px; height: 11px; display: inline-block; flex: none; clip-path: polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); }
   .legend-line { display: inline-block; width: 18px; height: 0; border-top: 2px solid; flex: none; }
-  .legend-note { color: var(--mut2); }
+  /* A note is a sentence, not a key: it wraps (the nowrap on .legend-item ran the
+     "Not pinned" list 450px past a phone screen). */
+  .legend-note { color: var(--mut2); white-space: normal; }
+  @media (max-width: 640px) { .leaflet-control-attribution { font-size: 9px; } }
 
   .new-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
   .new-card b { font-size: 22px; }

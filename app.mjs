@@ -197,7 +197,18 @@ function renderLeftRail(route) {
       </div>`;
     }).join('');
   }
-  el.innerHTML = `<div class="rail-list">${html}</div>`;
+  // Below 1000px the rail sits above the panel, so it folds away while someone's page
+  // is open and stays open on the web; the toggle is hidden on wider screens.
+  const count = Object.values(byKind).reduce((n, rows) => n + rows.length, 0);
+  const folded = route.view !== 'web' && !q;
+  el.classList.toggle('folded', folded);
+  el.innerHTML = `<button type="button" class="rail-fold" aria-expanded="${!folded}">` +
+    `<span>Officials &amp; candidates<span class="rf-count">${count}</span></span>` +
+    `<span class="rf-caret">&#9662;</span></button><div class="rail-list">${html}</div>`;
+  el.querySelector('.rail-fold').addEventListener('click', ev => {
+    const nowFolded = el.classList.toggle('folded');
+    ev.currentTarget.setAttribute('aria-expanded', String(!nowFolded));
+  });
   el.querySelector('[data-web]')?.addEventListener('click', () => navigate('#/web'));
   el.querySelectorAll('[data-id]').forEach(node => {
     node.addEventListener('click', () => select(node.dataset.id));
@@ -391,6 +402,25 @@ function render() {
   renderPanel(route, ctx);
   renderRightRail(route);
 }
+
+// On a phone every `.tbl` row is drawn as a card (see app.html), and a card's cells
+// need their column's name. Tabs build tables from strings and re-sort by replacing
+// the body, so rather than teach each builder, the header text is copied onto the
+// cells whenever the panel's contents change.
+function labelTableCells() {
+  for (const table of document.querySelectorAll('#panel table.tbl')) {
+    const names = [...table.querySelectorAll('thead th')].map(th =>
+      th.textContent.replace(/[▲▼↑↓]/g, '').trim());
+    if (!names.length) continue;
+    for (const tr of table.querySelectorAll('tbody tr')) {
+      [...tr.children].forEach((td, i) => {
+        if (!td.hasAttribute('data-label')) td.setAttribute('data-label', td.colSpan > 1 ? '' : names[i] || '');
+      });
+    }
+  }
+}
+new MutationObserver(labelTableCells)
+  .observe(document.getElementById('panel'), { childList: true, subtree: true });
 
 wireSearch();
 window.addEventListener('hashchange', render);

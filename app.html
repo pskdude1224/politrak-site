@@ -27,15 +27,57 @@
     .app-grid > .rail:last-child .rail-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
   }
   @media (max-width: 1000px) {
-    .app-grid { display: flex; flex-direction: column; }
-    .rail { width: 100%; max-height: none; overflow-y: visible; }
-    /* Rails become horizontally scrolling rows of chips/cards below 1000px;
-       above it .rail-list is a plain wrapper div and has no effect. */
-    .rail-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
-    .rail-list .rail-group-label { flex: none; align-self: center; margin: 0; }
-    .rail-list .rail-item { flex: none; white-space: nowrap; border: 1px solid var(--line); }
-    .rail-list .right-section { flex: none; width: 240px; margin-bottom: 0;
+    /* stretch, not the grid's `start`: in a flex column `start` sized the panel to its
+       widest content, which pushed a phone's page 150px past the screen. */
+    .app-grid { display: flex; flex-direction: column; align-items: stretch; }
+    /* static: a sticky rail above the panel slid along behind the web as the page scrolled. */
+    .app-grid > .rail { width: 100%; max-height: none; overflow-y: visible; position: static; }
+    /* The people rail used to be one sideways-scrolling strip, and nothing on a phone
+       said that more names sat past the edge. It is a wrapped grid now, every name on
+       screen, folded behind its toggle while someone's page is open. */
+    #left .rail-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+    #left .rail-group-label, #left .rail-item.everything { grid-column: 1 / -1; margin: 6px 0 0; }
+    #left .rail-item.everything { margin: 0; }
+    #left .rail-item { border: 1px solid var(--line); background: var(--panel2); }
+    #left.folded .rail-list { display: none; }
+    .rail-fold { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px;
+      margin-bottom: 8px; padding: 10px 14px; border-radius: 12px; cursor: pointer;
+      font: inherit; font-size: 13px; font-weight: 700; color: var(--ink);
+      background: var(--panel2); border: 1px solid var(--line); }
+    .rail-fold .rf-count { color: var(--mut2); font-weight: 600; margin-left: 6px; }
+    .rail-fold .rf-caret { color: var(--teal); transition: transform .15s; }
+    #left:not(.folded) .rail-fold .rf-caret { transform: rotate(180deg); }
+    #right .rail-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    #right .right-section { margin-bottom: 0;
       background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  }
+  @media (min-width: 1000.02px) { .rail-fold { display: none; } }
+  /* Phone width: the group label already says Official or Candidate, so a card keeps
+     only what sets it apart (running, the seat, sitting), and the six tabs share the
+     row evenly instead of pushing the last two past the screen. */
+  @media (max-width: 640px) {
+    #left .rail-item .pill:not(.running) { display: none; }
+    #left .rail-item { padding: 8px 10px; }
+    .tabs { gap: 0; }
+    .tab { flex: 1 1 auto; text-align: center; padding: 9px 2px; font-size: 12.5px; }
+    /* A seven-column table is three times a phone's width, and the amount sat past the
+       edge. Each row becomes a card, every cell labelled with its column (app.mjs copies
+       the header onto the cell); sortable headers stay as a row of sort chips. */
+    #panel .tbl, #panel .tbl tbody, #panel .tbl tr { display: block; width: 100%; }
+    #panel .tbl thead { display: block; }
+    #panel .tbl thead:not(:has(.sortable)) { display: none; }
+    #panel .tbl thead tr { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; }
+    #panel .tbl th { position: static; padding: 3px 10px; border: 1px solid var(--line);
+      border-radius: 999px; background: none; }
+    #panel .tbl th:not(.sortable) { display: none; }
+    #panel .tbl tbody tr { border: 1px solid var(--line-soft); border-radius: 12px;
+      padding: 8px 12px; margin-bottom: 8px; background: rgba(255,255,255,.02); }
+    #panel .tbl td { display: flex; gap: 10px; padding: 3px 0; border: 0; min-width: 0; }
+    #panel .tbl td::before { content: attr(data-label); flex: none; width: 88px; padding-top: 1px;
+      color: var(--mut2); font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; }
+    #panel .tbl td:not([data-label])::before, #panel .tbl td[data-label=""]::before { display: none; }
+    #panel .tbl td:empty { display: none; }
+    #panel .tbl td .src { max-width: 100%; }
   }
 
   /* ---- search ---- */
