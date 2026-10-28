@@ -134,7 +134,7 @@ export const VIEWS = [
   ['all', 'All'],
 ];
 const VIEW_NOTES = {
-  village: "Money given to Village of Key Biscayne candidates and the local PAC, from the Village Clerk's treasurer's reports.",
+  village: "Money given to Village of Key Biscayne candidates and the local PAC, from their campaign treasurer's reports: the Village Clerk's archive through 2024, and the EasyVote portal for the 2026 race.",
   own: "Gifts the officials and candidates made themselves to outside committees: federal (FEC) and Miami-Dade County / Florida filings.",
   all: 'Both kinds of contribution in one list.',
 };

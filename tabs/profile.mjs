@@ -73,6 +73,17 @@ function tiesSection(ties, selfId, ix) {
 }
 
 // ---- person profile ----------------------------------------------------------
+// A sitting member who is running again is both an official and a candidate. Which they are is
+// the ballot's business, not a field on their row: a candidacy in an election still ahead.
+export function ballotOffice(PT, personId) {
+  const upcoming = new Set((PT.tables.elections || [])
+    .filter(e => e.date && e.date >= (PT.meta ? PT.meta.builtDate : ''))
+    .map(e => e.election_id));
+  const c = (PT.tables.candidacies || []).find(x => x.person_id === personId && upcoming.has(x.election_id));
+  // Unopposed at qualifying is elected, not on the ballot.
+  if (!c || c.outcome === 'unopposed') return '';
+  return c.office || 'the ballot';
+}
 function termsTable(terms, seatsById, ix) {
   if (!terms.length) return '<p class="empty">No terms on file.</p>';
   const rows = terms.map(t => {
@@ -150,13 +161,16 @@ function renderPerson(container, ctx) {
   const seatsById = new Map((PT.tables.seats || []).map(s => [s.seat_id, s]));
   const residenceAddr = ix.residenceOf(person.person_id);
   const residenceText = residenceAddr ? ix.personPlace(person.person_id, residenceAddr.address_id) : '';
+  const runningOffice = ballotOffice(PT, person.person_id);
 
   container.innerHTML = `
     <div class="profile-header">
       <h2>${escapeHtml(person.full_name)}</h2>
       ${personPillHtml(person)}
+      ${runningOffice && person.kind !== 'candidate' ? '<span class="pill running">running</span>' : ''}
     </div>
     <p class="profile-meta">
+      ${runningOffice ? `<span>On the ballot for ${escapeHtml(runningOffice)}</span>` : ''}
       ${person.status ? `<span>${escapeHtml(person.status)}</span>` : ''}
       ${person.occupation ? `<span>${escapeHtml(person.occupation)}</span>` : ''}
       ${residenceText ? `<span>${escapeHtml(residenceText)}</span>` : ''}

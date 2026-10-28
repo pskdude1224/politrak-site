@@ -147,6 +147,35 @@ function wireSearch() {
 // ---- left rail ------------------------------------------------------------
 const KIND_GROUPS = [['official', 'Officials'], ['candidate', 'Candidates'], ['staff', 'Staff']];
 
+// A sitting member who is running again is both: `kind` keeps them under Officials, and the
+// ballot says they are also a candidate. Read it from the candidacies rather than their row,
+// so the badge follows the record instead of a hand-set field.
+const BALLOT = (() => {
+  const upcoming = new Set((PT.tables.elections || [])
+    .filter(e => e.date && e.date >= PT.meta.builtDate)
+    .map(e => e.election_id));
+  const out = new Map();
+  for (const c of PT.tables.candidacies || []) {
+    if (!upcoming.has(c.election_id)) continue;
+    // Unopposed at the close of qualifying means elected there and then: in the election, but
+    // not on the ballot, and the rail should say so rather than list them as still running.
+    out.set(c.person_id, { office: c.office || '', elected: c.outcome === 'unopposed' });
+  }
+  return out;
+})();
+
+function ballotStatus(p) {
+  const b = BALLOT.get(p.person_id);
+  if (!b) return p.status || '';
+  return b.elected ? `${b.office}-elect (unopposed)` : b.office;
+}
+
+function runningPillHtml(p) {
+  const b = p && BALLOT.get(p.person_id);
+  if (!b || b.elected || p.kind === 'candidate') return '';
+  return `<span class="pill running" title="On the ballot${b.office ? ` for ${b.office}` : ''}">running</span>`;
+}
+
 function renderLeftRail(route) {
   const el = document.getElementById('left');
   const q = searchQuery.trim().toLowerCase();
@@ -164,7 +193,7 @@ function renderLeftRail(route) {
       const active = route.id === p.person_id;
       return `<div class="rail-item${active ? ' on' : ''}" data-id="${escapeHtml(p.person_id)}">
         <span class="ri-name">${escapeHtml(p.full_name)}</span>
-        <span class="ri-meta">${personPillHtml(p)}<span class="status">${escapeHtml(p.status || '')}</span></span>
+        <span class="ri-meta">${personPillHtml(p)}${runningPillHtml(p)}<span class="status">${escapeHtml(ballotStatus(p))}</span></span>
       </div>`;
     }).join('');
   }

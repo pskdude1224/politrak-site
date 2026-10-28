@@ -57,15 +57,20 @@
   .rail-group-label { font-size: 11px; color: var(--mut2); text-transform: uppercase;
     letter-spacing: .5px; margin: 16px 0 6px; }
   .rail-group-label:first-of-type { margin-top: 0; }
-  .rail-item { display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--ink); }
+  /* A name is the one thing in this rail that must never be cut: the row is two lines, the name
+     wraps, and the pills sit under it. */
+  .rail-item { display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--ink);
+    border: 1px solid transparent; }
   .rail-item:hover { background: rgba(255,255,255,.05); }
   .rail-item.on { background: linear-gradient(100deg, rgba(70,166,255,.16), rgba(45,212,191,.16));
-    border: 1px solid rgba(45,212,191,.45); }
-  .rail-item.everything { font-weight: 700; margin-bottom: 4px; }
-  .rail-item .ri-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rail-item .ri-meta { display: flex; align-items: center; gap: 6px; flex: none; }
+    border-color: rgba(45,212,191,.45); }
+  .rail-item.everything { flex-direction: row; align-items: center; font-weight: 700; margin-bottom: 4px; }
+  .rail-item .ri-name { line-height: 1.3; overflow-wrap: anywhere; }
+  .rail-item .ri-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
   .rail-item .status { font-size: 11px; color: var(--mut2); }
+  /* On the ballot, whatever their day job: a sitting member running again. */
+  .pill.running { background: rgba(245,179,66,.14); border-color: rgba(245,179,66,.5); color: var(--amber); }
 
   /* ---- shared label/value rows (right rail, profile cards) ---- */
   .row { font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
